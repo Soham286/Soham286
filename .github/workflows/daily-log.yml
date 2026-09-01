@@ -1,38 +1,62 @@
 name: Daily automated activity log
 
 on:
+  # Temporary schedule test: minutes 7, 22, 37 and 52.
   schedule:
-    - cron: "30 17 * * *"
+    - cron: "7/15 * * * *"
+
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: daily-activity-log
+  cancel-in-progress: false
+
 jobs:
   update-log:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Update activity log
         shell: bash
         run: |
           mkdir -p activity
 
-          if [[ ! -f activity/daily-log.md ]]; then
-            printf "# Automated Daily Activity Log\n\nThis file is generated automatically by GitHub Actions.\n\n" > activity/daily-log.md
+          log_file="activity/daily-log.md"
+          today="$(TZ=America/Los_Angeles date +'%Y-%m-%d')"
+          timestamp="$(TZ=America/Los_Angeles date +'%Y-%m-%d %H:%M:%S %Z')"
+
+          if [[ ! -f "$log_file" ]]; then
+            printf "# Automated Daily Activity Log\n\n" > "$log_file"
+            printf "Generated automatically by GitHub Actions.\n\n" >> "$log_file"
           fi
 
-          printf -- "- %s\n" "$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> activity/daily-log.md
+          if grep -q -- "^- ${today} " "$log_file"; then
+            echo "An entry already exists for ${today}."
+          else
+            printf -- "- %s\n" "$timestamp" >> "$log_file"
+            echo "Added the entry for ${today}."
+          fi
 
       - name: Commit and push
         shell: bash
         run: |
-          git config user.name "Soham Banerjee"
-          git config user.email "${GITHUB_REPOSITORY_OWNER_ID}+${GITHUB_REPOSITORY_OWNER}@users.noreply.github.com"
-
           git add activity/daily-log.md
-          git commit -m "chore: update automated daily activity log"
-          git push
+
+          if git diff --cached --quiet; then
+            echo "No new daily entry to commit."
+            exit 0
+          fi
+
+          git config user.name "Soham Banerjee"
+          git config user.email \
+            "${GITHUB_REPOSITORY_OWNER_ID}+${GITHUB_REPOSITORY_OWNER}@users.noreply.github.com"
+
+          git commit -m "chore: update daily activity log"
+          git push origin HEAD:main
