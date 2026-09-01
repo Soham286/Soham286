@@ -1,0 +1,38 @@
+name: Daily automated activity log
+
+on:
+  schedule:
+    - cron: "30 17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-log:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Update activity log
+        shell: bash
+        run: |
+          mkdir -p activity
+
+          if [[ ! -f activity/daily-log.md ]]; then
+            printf "# Automated Daily Activity Log\n\nThis file is generated automatically by GitHub Actions.\n\n" > activity/daily-log.md
+          fi
+
+          printf -- "- %s\n" "$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> activity/daily-log.md
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          git config user.name "Soham Banerjee"
+          git config user.email "${GITHUB_REPOSITORY_OWNER_ID}+${GITHUB_REPOSITORY_OWNER}@users.noreply.github.com"
+
+          git add activity/daily-log.md
+          git commit -m "chore: update automated daily activity log"
+          git push
