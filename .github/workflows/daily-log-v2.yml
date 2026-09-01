@@ -1,9 +1,10 @@
-name: Daily automated activity log scheduler test
+name: Daily automated activity log
 
 on:
-  # Fresh scheduler registration test: every five minutes.
+  # Run once every day at 10:37 AM Pacific time.
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "37 10 * * *"
+      timezone: "America/Los_Angeles"
 
   workflow_dispatch:
 
