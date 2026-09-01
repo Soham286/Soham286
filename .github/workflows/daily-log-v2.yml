@@ -1,9 +1,9 @@
-name: Daily automated activity log
+name: Daily automated activity log scheduler test
 
 on:
-  # Temporary schedule test: minutes 7, 22, 37 and 52.
+  # Fresh scheduler registration test: every five minutes.
   schedule:
-    - cron: "7/15 * * * *"
+    - cron: "*/5 * * * *"
 
   workflow_dispatch:
 
