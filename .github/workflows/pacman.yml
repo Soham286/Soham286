@@ -1,0 +1,32 @@
+name: Generate Pacman graph
+
+on:
+  schedule:
+    - cron: "40 4 * * *" # daily
+  workflow_dispatch:
+
+concurrency:
+  group: pacman-graph
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      # Third-party actions are pinned to a commit so an upstream change can't run here unreviewed.
+      - name: Generate the Pacman SVGs
+        uses: abozanona/pacman-contribution-graph@7332e1de7903ab780c3692a4127a59cc13872daa # v5.3.2
+        with:
+          github_user_name: ${{ github.repository_owner }}
+
+      # Its own branch, because the snake workflow replaces everything on the "output" branch.
+      - name: Publish to the output-pacman branch
+        uses: crazy-max/ghaction-github-pages@1d6ee9b181a81033a16bd707a1401afa978daab4 # v5.0.0
+        with:
+          target_branch: output-pacman
+          build_dir: dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

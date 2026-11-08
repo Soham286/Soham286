@@ -1,0 +1,47 @@
+name: Update profile cards
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # daily
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["scripts/generate-cards.mjs"]
+
+concurrency:
+  group: readme-updates
+  cancel-in-progress: false
+
+jobs:
+  update-cards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Check the card logic
+        run: node scripts/generate-cards.mjs --self-test
+
+      - name: Generate the cards
+        run: node scripts/generate-cards.mjs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add assets/cards
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Update profile cards"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push
